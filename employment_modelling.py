@@ -6,15 +6,43 @@ arctan-based employment factor matrices, computes the Max/Med/Min employment
 vectors for every scenario, writes them to ``<Sector>_scenarios.xlsx`` and
 plots the 2025-2040 results.
 
-Requirements: numpy, pandas, openpyxl, matplotlib
+Google Colab: paste this whole file into one cell and run it. Colab already
+has numpy, pandas, openpyxl and matplotlib installed.
+  * USE_GOOGLE_DRIVE = False: you are asked to upload the input workbook, and
+    the results are downloaded to your computer as a zip file at the end.
+  * USE_GOOGLE_DRIVE = True: the input is read from, and the results are
+    written to, the Google Drive folders set below.
+Locally, set input_file_name / output_file_path to your own paths.
 """
 
 import os
 import re
+import shutil
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+
+try:
+    from google.colab import drive, files  # Only available inside Google Colab
+    IN_COLAB = True
+except ImportError:
+    IN_COLAB = False
+
+# ---------------------------------------------------------------------------
+# Settings: edit these to match where your files are
+# ---------------------------------------------------------------------------
+USE_GOOGLE_DRIVE = False  # Colab only: True = read/write in Google Drive, False = upload/download
+
+if IN_COLAB and USE_GOOGLE_DRIVE:
+    input_file_name = '/content/drive/MyDrive/LIMA_Employment_modelling/Input_data/employment_modelling_input.xlsx'
+    output_file_path = '/content/drive/MyDrive/LIMA_Employment_modelling/Output_Data'
+elif IN_COLAB:
+    input_file_name = '/content/employment_modelling_input.xlsx'  # Filled in after the upload
+    output_file_path = '/content/Output_Data'
+else:
+    input_file_name = r'C:\Users\sultan\OneDrive - Majan Council for Foresight Strategic Affairs and Energy\Desktop\LIMA_Employment_modelling\Input_data\employment_modelling_input.xlsx'
+    output_file_path = r'C:\Users\sultan\OneDrive\سطح المكتب\LIMA_Employment_modelling\Output_Data'  # Base output folder
 
 steepness_factor = 10
 correction_factor = 2800 / 4393
@@ -22,8 +50,6 @@ correction_factor = 2800 / 4393
 q = 0.2   # Peak height of the curve
 k = 0.49  # Power of sine in the increasing phase
 l = 1     # Power of cosine in the decreasing phase
-input_file_name = r'C:\Users\sultan\OneDrive - Majan Council for Foresight Strategic Affairs and Energy\Desktop\LIMA_Employment_modelling\Input_data\employment_modelling_input.xlsx'
-output_file_path = r'C:\Users\sultan\OneDrive\سطح المكتب\LIMA_Employment_modelling\Output_Data'  # Base output folder
 
 # Define each sector with its parameters
 Aluminium_dict_param = {'sheet_name': 'Aluminium', 'scenarios': 'A1:G32', 'sector_data_range': 'H1:L2'}
@@ -116,7 +142,7 @@ FIG_SIZE = (12 / 2.54, 8 / 2.54)  # 12 cm x 8 cm
 
 def _finish_axes(ax, title):
     ax.set_title(title, fontsize=10, fontweight='normal')
-    ax.set_xlabel('Years', fontsize=11, fontname='Arial')
+    ax.set_xlabel('Years', fontsize=11)
     ax.set_xticks(range(2025, 2041, 5))
     ax.set_ylabel('Number of Jobs', fontsize=12)
     ax.tick_params(labelsize=10)
@@ -169,9 +195,31 @@ def plot_employment_vectors(plot_years, y_max, y_med, y_min, plot_year_indices, 
     _finish_axes(ax, f'Scenarios for {sector_name} sector')
 
 
+# %% Google Colab input/output helpers
+def prepare_input_file():
+    """In Colab, mount Google Drive or ask for the input workbook to be uploaded."""
+    global input_file_name
+    if not IN_COLAB:
+        return
+    if USE_GOOGLE_DRIVE:
+        drive.mount('/content/drive')
+    elif not os.path.exists(input_file_name):
+        print('Please upload the input workbook (employment_modelling_input.xlsx):')
+        uploaded = files.upload()
+        input_file_name = os.path.join('/content', next(iter(uploaded)))
+
+
+def download_results():
+    """In Colab (without Google Drive), download the output folder as a zip file."""
+    if IN_COLAB and not USE_GOOGLE_DRIVE:
+        zip_path = shutil.make_archive('/content/Output_Data', 'zip', output_file_path)
+        files.download(zip_path)
+
+
 # %% Main: loop through each sector to perform calculations and save results
 def main():
     plt.close('all')
+    prepare_input_file()
     for dict_param in param_list:
         sheet = dict_param['sheet_name']
         scenarios_investments = dict_param['scenarios']
@@ -232,6 +280,7 @@ def main():
                                    'Government Plan', sheet)
 
     plt.show()
+    download_results()
 
 
 if __name__ == '__main__':
