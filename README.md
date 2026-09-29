@@ -6,8 +6,9 @@ Python (Google Colab) version of the LIMA employment models.
 1. Download `colab/LIMA_employment_modelling.ipynb`.
 2. Open https://colab.research.google.com, choose **File > Upload notebook** and select it.
 3. Choose **Runtime > Run all**.
-4. When Step 1 asks for files, select `employment_modelling_input.xlsx` (and, optionally,
-   your previous `raw_data.xlsx` to keep sheets that no step recreates, such as BuildingEnergyEfficiency).
+4. When Step 1 asks for files, select `employment_modelling_input.xlsx`. Optionally also select
+   your previous `raw_data.xlsx` (keeps sheets that no step recreates, such as BuildingEnergyEfficiency)
+   and `ems.xlsx` (Building Energy Efficiency report figures).
 5. At the end, `Output_data.zip` is downloaded with `raw_data.xlsx`, all Excel outputs and the charts.
 
 ## Steps in the notebook
@@ -18,8 +19,11 @@ Python (Google Colab) version of the LIMA employment models.
 | 3 | Wind turbine, PV and electrolyser manufacturing | WindMan, PVman, ElecMan |
 | 4 | Hydrogen sector (H2.m) | hydrogen |
 | 5 | Solar PV and wind power (job roles, phases, charts) | PV, Wind |
-| 6 | Scenario charts for all sectors, read from raw_data.xlsx | - |
-| 7 | Download the results | - |
+| 6 | Scenario charts for all sectors, read from raw_data.xlsx (lineChart.py) | - |
+| 7 | Final report figures: solar/wind/hydrogen stacked charts, steel chart, building energy efficiency | - |
+| 8 | Download the results | - |
+
+All report charts are saved in `Output_data/Employment_Line_Charts`.
 
 ## Editing
 The notebook is built from the files in `colab/cells/`. After editing a cell file, run

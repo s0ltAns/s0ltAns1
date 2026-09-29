@@ -39,18 +39,26 @@ else:
 INPUT_FILE = os.path.join(WORK_DIR, 'Input_data', 'employment_modelling_input.xlsx')
 OUTPUT_DIR = os.path.join(WORK_DIR, 'Output_data')
 RAW_DATA_FILE = os.path.join(OUTPUT_DIR, 'raw_data.xlsx')  # Every model cell adds its sheet(s) here
+EMS_FILE = os.path.join(OUTPUT_DIR, 'ems.xlsx')            # Optional: Building Energy Efficiency (report figures)
+REPORT_DIR = os.path.join(OUTPUT_DIR, 'Employment_Line_Charts')  # Final report figures
 os.makedirs(os.path.dirname(INPUT_FILE), exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # -----------------------------------------------------------------------------
-# Upload the input workbook (and, optionally, your previous raw_data.xlsx)
+# Upload the input workbook (and, optionally, raw_data.xlsx and ems.xlsx)
 # -----------------------------------------------------------------------------
 if IN_COLAB and not USE_GOOGLE_DRIVE:
     print('Select employment_modelling_input.xlsx.\n'
-          'Optional: also select your previous raw_data.xlsx - any sheet that no cell below '
-          'recreates (e.g. BuildingEnergyEfficiency) is then kept.')
+          'Optional, in the same window:\n'
+          '  - your previous raw_data.xlsx: sheets no cell below recreates (e.g. BuildingEnergyEfficiency) are kept\n'
+          '  - ems.xlsx: for the Building Energy Efficiency report figures')
     for name, content in files.upload().items():
-        target = RAW_DATA_FILE if 'raw_data' in name.lower() else INPUT_FILE
+        if 'raw_data' in name.lower():
+            target = RAW_DATA_FILE
+        elif name.lower().startswith('ems'):
+            target = EMS_FILE
+        else:
+            target = INPUT_FILE
         with open(target, 'wb') as f:
             f.write(content)
         if os.path.exists(name):

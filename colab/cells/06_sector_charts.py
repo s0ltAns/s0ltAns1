@@ -1,11 +1,11 @@
 # =============================================================================
 # STEP 6 - SCENARIO CHARTS FOR ALL SECTORS (reads raw_data.xlsx)
 # One small chart per sector: median line, min/max band, dashed min/max lines.
-# Writes: Output_data/svg_plots/<sheet>_scenarios.svg
+# Writes: Output_data/Employment_Line_Charts/<sheet>_scenarios.svg (lineChart.py)
 # =============================================================================
 plt.close('all')
 
-SVG_DIR = os.path.join(OUTPUT_DIR, 'svg_plots')
+SVG_DIR = REPORT_DIR
 
 # Sector name -> sheet name in raw_data.xlsx
 sector_sheets = {

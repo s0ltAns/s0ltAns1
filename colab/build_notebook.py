@@ -11,8 +11,8 @@ CELLS = [
     ('01_setup.py',
      '## Step 1 - Setup\n'
      'Run this cell first. It asks you to upload **employment_modelling_input.xlsx**. '
-     'Optionally select your previous **raw_data.xlsx** at the same time: any sheet the cells below do '
-     'not recreate (e.g. *BuildingEnergyEfficiency*) is then kept.\n\n'
+     'Optionally select at the same time your previous **raw_data.xlsx** (keeps sheets the cells below do '
+     'not recreate, e.g. *BuildingEnergyEfficiency*) and **ems.xlsx** (Building Energy Efficiency figures).\n\n'
      'To work in Google Drive instead, set `USE_GOOGLE_DRIVE = True` and put the input workbook in '
      '`MyDrive/LIMA_Employment_modelling/Input_data/`.'),
     ('02_steel_aluminium_cement.py',
@@ -29,16 +29,20 @@ CELLS = [
      'Job roles (planning, construction, O&M) and phase totals. Adds the sheets *PV* and *Wind* to raw_data.xlsx.'),
     ('06_sector_charts.py',
      '## Step 6 - Scenario charts for all sectors\n'
-     'Reads raw_data.xlsx and saves one .svg chart per sector.'),
-    ('07_download.py',
-     '## Step 7 - Download the results\n'
+     'Reads raw_data.xlsx and saves one .svg chart per sector (lineChart.py).'),
+    ('07_report_figures.py',
+     '## Step 7 - Final report figures\n'
+     'Stacked charts for solar, wind and hydrogen, the large steel chart and, if ems.xlsx was uploaded, '
+     'the Building Energy Efficiency charts. Set `STEEL_COLOURS` and the y-axis settings at the top.'),
+    ('08_download.py',
+     '## Step 8 - Download the results\n'
      'Downloads Output_data.zip with raw_data.xlsx, all Excel outputs and the charts.'),
 ]
 
 INTRO = (
     '# LIMA employment modelling\n'
     'Run the cells from top to bottom (**Runtime > Run all** also works). '
-    'Steps 2-5 each add their sectors to **raw_data.xlsx**; Step 6 draws the charts from it.'
+    'Steps 2-5 each add their sectors to **raw_data.xlsx**; Steps 6-7 draw the report charts.'
 )
 
 

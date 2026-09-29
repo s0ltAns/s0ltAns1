@@ -1,5 +1,5 @@
 # =============================================================================
-# STEP 7 - DOWNLOAD ALL RESULTS
+# STEP 8 - DOWNLOAD ALL RESULTS
 # Zips the whole Output_data folder (raw_data.xlsx, all Excel outputs and charts).
 # With USE_GOOGLE_DRIVE = True the results are already in your Drive.
 # =============================================================================
