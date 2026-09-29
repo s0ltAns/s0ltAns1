@@ -1,67 +1,20 @@
-"""PV (Solar) and Wind employment modelling: all five MATLAB scripts in one file.
+# =============================================================================
+# STEP 5 - SOLAR PV AND WIND POWER
+# (Planning.m, Construction.m, OperationAndMaintenance.m, Solar_plots.m, Wind_plots.m)
+# Part A: employment by job role -> PV_Wind_Power/employment_per_jobroles/Output_data
+# Part B: employment by phase + charts -> PV_Wind_Power/step1 and PV_Wind_Power/scenarios_data
+# Writes raw_data.xlsx sheets: PV (Solar), Wind
+# =============================================================================
+plt.close('all')
 
-The file is split into parts that run from top to bottom:
-
-    0. Settings        where the input workbook is and where results are saved
-    1. Model inputs    constants, cell ranges and scenario lists taken from the MATLAB scripts
-    2. Excel helpers   read cell ranges / write sheets (like MATLAB readmatrix, readtable, writecell)
-    3. Model formulas  the employment factor matrices A (employment = A * investment)
-    4. Part A          employment by JOB ROLE     (Planning.m, Construction.m, OperationAndMaintenance.m)
-    5. Part B          employment by PHASE + charts (Solar_plots.m, Wind_plots.m)
-    6. Run everything
-
-The calculations copy the MATLAB scripts exactly, including where the scripts
-differ from each other (see the notes next to each setting).
-
-Google Colab: paste this whole file into one cell and run it. Colab already
-has numpy, pandas, openpyxl and matplotlib installed.
-  * USE_GOOGLE_DRIVE = False: you are asked to upload the input workbook, and
-    all results are downloaded to your computer as PV_Wind_Power.zip at the end.
-  * USE_GOOGLE_DRIVE = True: the input is read from, and the results are
-    written to, the Google Drive folders set below.
-"""
-
-import os
-import re
-import shutil
-from collections import namedtuple
-
-import matplotlib.pyplot as plt
-import numpy as np
-from matplotlib.ticker import FuncFormatter
-from openpyxl import Workbook, load_workbook
-from openpyxl.utils import range_boundaries
-
-try:
-    from google.colab import drive, files  # Only available inside Google Colab
-    IN_COLAB = True
-except ImportError:
-    IN_COLAB = False
+PV_WIND_DIR = os.path.join(OUTPUT_DIR, 'PV_Wind_Power')
+JOBROLES_DIR = os.path.join(PV_WIND_DIR, 'employment_per_jobroles', 'Output_data')  # Part A
+STEP1_DIR = os.path.join(PV_WIND_DIR, 'step1')                                      # Part B, steps B1-B2
+SCENARIOS_DATA_DIR = os.path.join(PV_WIND_DIR, 'scenarios_data')                    # Part B, steps B3-B4
 
 
 # =============================================================================
-# 0. SETTINGS: edit these to match where your files are
-# =============================================================================
-USE_GOOGLE_DRIVE = False  # Colab only: True = read/write in Google Drive, False = upload/download
-
-if IN_COLAB and USE_GOOGLE_DRIVE:
-    INPUT_FILE = '/content/drive/MyDrive/Coding/Input_data/employment_modelling_input.xlsx'
-    OUTPUT_ROOT = '/content/drive/MyDrive/Coding/PV_Wind_Power'
-elif IN_COLAB:
-    INPUT_FILE = '/content/employment_modelling_input.xlsx'  # Filled in after the upload
-    OUTPUT_ROOT = '/content/PV_Wind_Power'
-else:
-    INPUT_FILE = r'C:\Users\sultan\OneDrive - Majan Council for Foresight Strategic Affairs and Energy\Desktop\Coding\Input_data\employment_modelling_input.xlsx'
-    OUTPUT_ROOT = r'C:\Users\sultan\OneDrive - Majan Council for Foresight Strategic Affairs and Energy\Desktop\Coding\PV_Wind_Power'
-
-# Output folders (same layout as the MATLAB scripts)
-JOBROLES_DIR = os.path.join(OUTPUT_ROOT, 'employment_per_jobroles', 'Output_data')  # Part A
-STEP1_DIR = os.path.join(OUTPUT_ROOT, 'step1')                                      # Part B, steps B1-B2
-SCENARIOS_DATA_DIR = os.path.join(OUTPUT_ROOT, 'scenarios_data')                    # Part B, steps B3-B4
-
-
-# =============================================================================
-# 1. MODEL INPUTS
+# Model inputs
 # =============================================================================
 
 # --- Planning & construction curve: sine rise -> flat peak -> cosine decline ---
@@ -114,6 +67,7 @@ def _rgb(values):
 # Where Solar_plots.m and Wind_plots.m differ
 TECHNOLOGIES = {
     'Solar': dict(                       # Solar_plots.m
+        raw_sheet='PV',                  # Sheet in raw_data.xlsx
         last_row=37,                     # Investment in C2:C37 ... H2:H37 (36 half-year periods)
         plc_job_range='T2:X3',           # GOV ('T9:X10' for the scenarios)
         om_job_range='T4:X4',            # GOV ('T11:X11' for the scenarios)
@@ -127,6 +81,7 @@ TECHNOLOGIES = {
         title_gov='Employment Over Time for Scenarios x-gov-sc and x-gov-sm',
     ),
     'Wind': dict(                        # Wind_plots.m
+        raw_sheet='Wind',                # Sheet in raw_data.xlsx
         last_row=32,                     # Investment in C2:C32 ... H2:H32 (31 half-year periods)
         plc_job_range='M55:Q56',         # gov ('T2:X3' for the scenarios)
         om_job_range='M57:Q57',          # Gov ('T3:X3' for the scenarios)
@@ -144,90 +99,7 @@ OM_RANGE_FOR_STACKED = 'B2:B32'  # O&M rows used in B4
 
 
 # =============================================================================
-# 2. EXCEL HELPERS
-# =============================================================================
-Job = namedtuple('Job', 'name psi start length')
-
-_input_cache = {}
-
-
-def _open_sheet(path, sheet):
-    """Open a sheet for reading (the input workbook is only loaded once)."""
-    if path == INPUT_FILE:
-        if path not in _input_cache:
-            _input_cache[path] = load_workbook(path, data_only=True)
-        return _input_cache[path][sheet]
-    return load_workbook(path, data_only=True)[sheet]
-
-
-def read_range(path, sheet, cell_range):
-    """Raw cell values of a range, e.g. 'M2:Q25', as a list of rows."""
-    ws = _open_sheet(path, sheet)
-    min_col, min_row, max_col, max_row = range_boundaries(cell_range)
-    return [[ws.cell(r, c).value for c in range(min_col, max_col + 1)]
-            for r in range(min_row, max_row + 1)]
-
-
-def _to_number(value):
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        return np.nan  # Empty or text cells become NaN, as in MATLAB
-    return float(value)
-
-
-def read_numbers(path, sheet, cell_range):
-    """Like MATLAB readmatrix: a 2-D array of numbers (NaN for empty/text cells)."""
-    return np.array([[_to_number(v) for v in row] for row in read_range(path, sheet, cell_range)])
-
-
-def read_column(path, sheet, cell_range):
-    """A one-column range as a 1-D array, e.g. an investment vector 'C2:C38'."""
-    return read_numbers(path, sheet, cell_range)[:, 0]
-
-
-def read_job_table(path, sheet, cell_range):
-    """Like MATLAB readtable on a job-role table (columns Var1..Var5).
-
-    Uses Var2 = job name, Var3 = psi (employment factor), Var4 = start (B/M/E),
-    Var5 = length (S/M/L). Completely empty rows are skipped, as readtable does.
-    """
-    jobs = []
-    for row in read_range(path, sheet, cell_range):
-        if all(v is None or str(v).strip() == '' for v in row):
-            continue
-        name, psi, start, length = row[1], row[2], row[3], row[4]
-        jobs.append(Job(name='' if name is None else str(name),
-                        psi=_to_number(psi),
-                        start='' if start is None else str(start),
-                        length='' if length is None else str(length)))
-    return jobs
-
-
-def _to_excel(value):
-    if isinstance(value, np.generic):
-        value = value.item()
-    if isinstance(value, float) and np.isnan(value):
-        return None
-    return value
-
-
-def write_cells(path, sheet, rows):
-    """Like MATLAB writecell/writetable with 'Sheet': write rows from cell A1 of
-    the sheet, keeping the workbook's other sheets."""
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    if os.path.exists(path):
-        wb = load_workbook(path)
-    else:
-        wb = Workbook()
-        wb.remove(wb.active)
-    ws = wb[sheet] if sheet in wb.sheetnames else wb.create_sheet(sheet)
-    for r, row in enumerate(rows, start=1):
-        for c, value in enumerate(row, start=1):
-            ws.cell(r, c).value = _to_excel(value)
-    wb.save(path)
-
-
-# =============================================================================
-# 3. MODEL FORMULAS
+# Model formulas
 # =============================================================================
 def convert_start_length(start, length, d, early_share):
     """Turn a job's start (B/M/E) and length (S/M/L) into a time window.
@@ -297,7 +169,7 @@ def om_factor_matrix(psi, start_time, num_periods, offset):
 
 
 # =============================================================================
-# 4. PART A: EMPLOYMENT BY JOB ROLE
+# Part A: employment by job role
 #    (Planning.m, Construction.m, OperationAndMaintenance.m)
 #    Output: <Tech>_JobRoles_Scenarios.xlsx with sheets Planning, Construction,
 #    Operation and Maintenance. In each sheet the six scenarios are stacked
@@ -344,7 +216,7 @@ def run_jobrole_phase(tech, phase_name, curve, job_range):
 
 
 # =============================================================================
-# 5. PART B: EMPLOYMENT BY PHASE + CHARTS (Solar_plots.m, Wind_plots.m)
+# Part B: employment by phase + charts (Solar_plots.m, Wind_plots.m)
 #    B1  Planning & construction totals -> step1/<Tech>_Employment_Output_PLC.xlsx
 #    B2  Operation & maintenance totals -> step1/<Tech>_Employment_Output_OM.xlsx
 #    B3  Scenario charts with +/-20% bands -> scenarios_data/<Tech>_Scenarios_Plot_Data.xlsx
@@ -433,6 +305,10 @@ def step_b3_scenario_charts(tech, cfg, plc_file, om_file):
     upper_bounds = total_employment * 1.2
     lower_bounds = total_employment * 0.8
 
+    # raw_data.xlsx: the four scenarios (Max = upper bound, Med = total, Min = lower bound)
+    write_raw_data_sheet(cfg['raw_sheet'], raw_rows_by_year(
+        years, [(upper_bounds[:, i], total_employment[:, i], lower_bounds[:, i]) for i in range(4)]))
+
     plot_file = os.path.join(SCENARIOS_DATA_DIR, f'{tech}_Scenarios_Plot_Data.xlsx')
     for indices, title, sheet in [([0, 1, 2, 3], cfg['title_main'], 'Scenarios'),
                                   ([4, 5], cfg['title_gov'], 'GOV_Scenarios')]:
@@ -518,44 +394,14 @@ def plot_stacked(years, stages, title):
 
 
 # =============================================================================
-# 6. RUN EVERYTHING
+# Run Part A and Part B
 # =============================================================================
-def prepare_input_file():
-    """In Colab, mount Google Drive or ask for the input workbook to be uploaded."""
-    global INPUT_FILE
-    if not IN_COLAB:
-        return
-    if USE_GOOGLE_DRIVE:
-        drive.mount('/content/drive')
-    elif not os.path.exists(INPUT_FILE):
-        print('Please upload the input workbook (employment_modelling_input.xlsx):')
-        uploaded = files.upload()
-        INPUT_FILE = os.path.join('/content', next(iter(uploaded)))
+# Part A: employment by job role (Planning, Construction, O&M) for Solar and Wind
+for phase_name, curve, job_ranges in JOBROLE_PHASES:
+    for tech in ('Solar', 'Wind'):
+        run_jobrole_phase(tech, phase_name, curve, job_ranges[tech])
 
-
-def download_results():
-    """In Colab (without Google Drive), download all results as one zip file."""
-    if IN_COLAB and not USE_GOOGLE_DRIVE:
-        zip_path = shutil.make_archive(OUTPUT_ROOT, 'zip', OUTPUT_ROOT)
-        files.download(zip_path)
-
-
-def main():
-    plt.close('all')
-    prepare_input_file()
-
-    # Part A: employment by job role (Planning, Construction, O&M) for Solar and Wind
-    for phase_name, curve, job_ranges in JOBROLE_PHASES:
-        for tech in ('Solar', 'Wind'):
-            run_jobrole_phase(tech, phase_name, curve, job_ranges[tech])
-
-    # Part B: employment by phase and charts, Solar then Wind
-    for tech, cfg in TECHNOLOGIES.items():
-        run_technology(tech, cfg)
-        plt.show()
-
-    download_results()
-
-
-if __name__ == '__main__':
-    main()
+# Part B: employment by phase and charts, Solar then Wind
+for tech, cfg in TECHNOLOGIES.items():
+    run_technology(tech, cfg)
+    plt.show()
